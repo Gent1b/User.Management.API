@@ -1,14 +1,18 @@
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using AutoMapper;
+using System;
 using System.Text;
 using User.Management.API;
+using User.Management.API.Models;
+using User.Management.API.Repositories;
 using User.Management.API.Services;
 using User.Management.Service.Models;
 using User.Management.Service.Services;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,9 +20,18 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultSQLConnection")));
 
 // For Identity
-builder.Services.AddIdentity<IdentityUser, IdentityRole>()
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
+
+
+var mapperConfiguration = new MapperConfiguration(cfg =>
+{
+    cfg.AddProfile<MappingConfig>(); // Replace with the actual name of your AutoMapper profile class
+});
+
+var mapper = mapperConfiguration.CreateMapper();
+builder.Services.AddSingleton(mapper);
 
 // Adding Authentication
 builder.Services.AddAuthentication(options =>
@@ -46,7 +59,17 @@ builder.Services.AddSingleton(emailConfig);
 
 builder.Services.AddScoped<IEmailService, EmailService>();
 
-builder.Services.AddTransient<User.Management.API.Services.IAuthenticationService, User.Management.API.Services.AuthenticationService>();
+builder.Services.AddTransient<IAuthenticationService, AuthenticationService>();
+
+// Configure services and repositories for UserProfile
+// Configure services and repositories for UserProfile
+builder.Services.AddTransient<IUserProfileRepository, UserProfileRepository>();
+builder.Services.AddTransient<IUserProfileService, UserProfileService>();
+
+builder.Services.AddTransient<IStayRepository,StayRepository>();
+builder.Services.AddTransient<IStayService,StayService>();
+
+
 
 
 
@@ -78,12 +101,20 @@ builder.Services.AddSwaggerGen(option =>
                     Id = "Bearer"
                 }
             },
-            new string[] { }
+            Array.Empty<string>()
         }
     });
 });
 
 var app = builder.Build();
+
+// Database Migrations
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var context = services.GetRequiredService<ApplicationDbContext>();
+    context.Database.Migrate();
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

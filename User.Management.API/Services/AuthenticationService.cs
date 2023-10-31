@@ -8,6 +8,7 @@ using System.Text;
 using User.Management.API.Models;
 using User.Management.API.Models.Authentication.Login;
 using User.Management.API.Models.Authentication.SignUp;
+using User.Management.API.Repositories;
 using User.Management.Service.Models;
 using User.Management.Service.Services;
 
@@ -15,17 +16,19 @@ namespace User.Management.API.Services
 {
     public class AuthenticationService : IAuthenticationService
     {
-        private readonly UserManager<IdentityUser> _userManager; // Replace ApplicationUser with your custom user class
+        private readonly UserManager<ApplicationUser> _userManager; // Replace ApplicationUser with your custom user class
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IConfiguration _configuration;
         private readonly IEmailService _emailService;
+        private readonly IUserProfileRepository _userProfileRepository;
 
-        public AuthenticationService(UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration, IEmailService emailService)
+        public AuthenticationService(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration, IEmailService emailService,IUserProfileRepository userProfileRepository)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _configuration = configuration;
             _emailService = emailService;
+            _userProfileRepository = userProfileRepository;
         }
 
         public Task ForgotPassword(string email)
@@ -110,7 +113,7 @@ namespace User.Management.API.Services
                 };
             }
 
-            var user = new IdentityUser // Replace ApplicationUser with your custom user class
+            var user = new ApplicationUser
             {
                 Email = registerUser.Email,
                 UserName = registerUser.UserName,
@@ -120,6 +123,19 @@ namespace User.Management.API.Services
             if (result.Succeeded)
             {
                 await _userManager.AddToRoleAsync(user, role);
+
+                // Create the user profile
+                var userProfile = new UserProfile
+                {
+                    AspNetUserId = user.Id,
+                    // Set other properties from the registration model
+                    FullName = registerUser.FullName,
+                    Country = registerUser.Country,
+                    Age = registerUser.Age
+                };
+
+                // Save the user profile
+                _userProfileRepository.CreateUserProfileAsync(userProfile);
 
                 var emailConfirmationResult = await SendEmailConfirmation(user);
                 if (emailConfirmationResult.IsSuccess)
@@ -142,6 +158,7 @@ namespace User.Management.API.Services
                 Response = result
             };
         }
+
 
         private async Task<ApiResponse> CheckExistingUser(string email, string userName)
         {
@@ -219,7 +236,7 @@ namespace User.Management.API.Services
                         IsSuccess = true,
                         StatusCode = StatusCodes.Status200OK,
                         Message = "Password changed successfully",
-                        Response = null // You can include additional response data if needed.
+                        Response = resetPassResult // You can include additional response data if needed.
                     };
                 }
                 else
@@ -250,7 +267,7 @@ namespace User.Management.API.Services
 
 
 
-        private async Task<ApiResponse> SendEmailConfirmation(IdentityUser user) // Replace ApplicationUser with your custom user class
+        private async Task<ApiResponse> SendEmailConfirmation(ApplicationUser user) // Replace ApplicationUser with your custom user class
         {
             var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
             var email = Uri.EscapeDataString(user.Email);

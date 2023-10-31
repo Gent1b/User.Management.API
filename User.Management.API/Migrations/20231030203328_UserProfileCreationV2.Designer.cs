@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using User.Management.API;
 
@@ -11,9 +12,11 @@ using User.Management.API;
 namespace User.Management.API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20231030203328_UserProfileCreationV2")]
+    partial class UserProfileCreationV2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -243,43 +246,6 @@ namespace User.Management.API.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("User.Management.API.Models.Stay", b =>
-                {
-                    b.Property<int>("StayId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StayId"));
-
-                    b.Property<string>("City")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Country")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ImageUrl")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("MaxGuests")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("UserProfileId")
-                        .HasColumnType("int");
-
-                    b.HasKey("StayId");
-
-                    b.HasIndex("UserProfileId");
-
-                    b.ToTable("Stays");
-                });
-
             modelBuilder.Entity("User.Management.API.Models.UserProfile", b =>
                 {
                     b.Property<int>("Id")
@@ -362,17 +328,6 @@ namespace User.Management.API.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("User.Management.API.Models.Stay", b =>
-                {
-                    b.HasOne("User.Management.API.Models.UserProfile", "UserProfile")
-                        .WithMany("Stays")
-                        .HasForeignKey("UserProfileId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("UserProfile");
-                });
-
             modelBuilder.Entity("User.Management.API.Models.UserProfile", b =>
                 {
                     b.HasOne("User.Management.API.Models.ApplicationUser", "AspNetUser")
@@ -388,11 +343,6 @@ namespace User.Management.API.Migrations
                 {
                     b.Navigation("UserProfile")
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("User.Management.API.Models.UserProfile", b =>
-                {
-                    b.Navigation("Stays");
                 });
 #pragma warning restore 612, 618
         }
